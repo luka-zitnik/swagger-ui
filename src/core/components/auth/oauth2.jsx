@@ -24,7 +24,7 @@ export default class Oauth2 extends React.Component {
     let username = auth && auth.get("username") || ""
     let clientId = auth && auth.get("clientId") || authConfigs.clientId || ""
     let clientSecret = auth && auth.get("clientSecret") || authConfigs.clientSecret || ""
-    let passwordType = auth && auth.get("passwordType") || "request-body"
+    let passwordType = auth && auth.get("passwordType") || "json-payload"
 
     this.state = {
       appName: authConfigs.appName,
@@ -148,6 +148,7 @@ export default class Oauth2 extends React.Component {
                   isAuthorized ? <code> { this.state.passwordType } </code>
                     : <Col tablet={10} desktop={10}>
                       <select id="password_type" data-name="passwordType" onChange={ this.onInputChange }>
+                        <option value="json-payload">JSON payload</option>
                         <option value="request-body">Request body</option>
                         <option value="basic">Basic auth</option>
                         <option value="query">Query parameters</option>

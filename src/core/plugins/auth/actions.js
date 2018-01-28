@@ -1,3 +1,4 @@
+import parseUrl from "url-parse"
 import win from "core/window"
 import { btoa, buildFormData } from "core/utils"
 
@@ -73,7 +74,7 @@ export const authorizePassword = ( auth ) => ( { authActions } ) => {
   let { schema, name, username, password, passwordType, clientId, clientSecret } = auth
   let form = {
     grant_type: "password",
-    scope: auth.scopes.join(scopeSeparator)
+    scope: passwordType === "json-payload" ? undefined : auth.scopes.join(scopeSeparator)
   }
   let query = {}
   let headers = {}
@@ -90,12 +91,17 @@ export const authorizePassword = ( auth ) => ( { authActions } ) => {
       if ( clientSecret ) {
         query.client_secret = clientSecret
       }
+    } else if ( passwordType === "json-payload" ) {
+      Object.assign(form, {client_id: clientId, client_secret: clientSecret})
+      headers["Content-Type"] = "application/json"
     } else {
       headers.Authorization = "Basic " + btoa(clientId + ":" + clientSecret)
     }
   }
 
-  return authActions.authorizeRequest({ body: buildFormData(form), url: schema.get("tokenUrl"), name, headers, query, auth})
+  let body = passwordType === "json-payload" ? JSON.stringify(form) : buildFormData(form)
+
+  return authActions.authorizeRequest({ body, url: schema.get("tokenUrl"), name, headers, query, auth})
 }
 
 export const authorizeApplication = ( auth ) => ( { authActions } ) => {
@@ -139,10 +145,10 @@ export const authorizeAccessCodeWithBasicAuthentication = ( { auth, redirectUrl 
   return authActions.authorizeRequest({body: buildFormData(form), name, url: schema.get("tokenUrl"), auth, headers})
 }
 
-export const authorizeRequest = ( data ) => ( { fn, getConfigs, authActions, errActions, authSelectors } ) => {
+export const authorizeRequest = ( data ) => ( { fn, getConfigs, authActions, errActions, authSelectors, oas3Selectors } ) => {
   let { body, query={}, headers={}, name, url, auth } = data
   let { additionalQueryStringParams } = authSelectors.getConfigs() || {}
-  let fetchUrl = url
+  let fetchUrl = parseUrl(url, oas3Selectors.selectedServer()).toString()
 
   for (let key in additionalQueryStringParams) {
     url += "&" + key + "=" + encodeURIComponent(additionalQueryStringParams[key])
